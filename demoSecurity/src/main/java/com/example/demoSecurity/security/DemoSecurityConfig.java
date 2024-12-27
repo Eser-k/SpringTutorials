@@ -3,24 +3,30 @@ package com.example.demoSecurity.security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import javax.sql.DataSource;
 
 @Configuration
 public class DemoSecurityConfig {
 
+    //support for jdbc, no hard coded users
     @Bean
-    public InMemoryUserDetailsManager userDetailsManager(){
-        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+    public UserDetailsManager userDetailsManager(DataSource dataSource){
+        JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
 
-        manager.createUser(User.withUsername("john").password("{noop}test123").roles("EMPLOYEE").build());
-        manager.createUser(User.withUsername("mary").password("{noop}test123").roles("EMPLOYEE", "MANAGER").build());
-        manager.createUser(User.withUsername("susan").password("{noop}test123").roles("EMPLOYEE", "MANAGER", "ADMIN").build());
+        jdbcUserDetailsManager.setUsersByUsernameQuery(
+                "SELECT user_id, pw, active FROM members WHERE user_id = ?");
 
-        return manager;
+        jdbcUserDetailsManager.setAuthoritiesByUsernameQuery(
+                "SELECT user_id, role FROM roles WHERE user_id = ?");
+
+
+        return jdbcUserDetailsManager;
     }
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
@@ -45,4 +51,20 @@ public class DemoSecurityConfig {
 
         return http.build();
     }
+
+    /*
+    @Bean
+    public InMemoryUserDetailsManager userDetailsManager(){
+        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+
+        manager.createUser(User.withUsername("john").password("{noop}test123").roles("EMPLOYEE").build());
+        manager.createUser(User.withUsername("mary").password("{noop}test123").roles("EMPLOYEE", "MANAGER").build());
+        manager.createUser(User.withUsername("susan").password("{noop}test123").roles("EMPLOYEE", "MANAGER", "ADMIN").build());
+
+        return manager;
+    }
+    */
 }
+
+
+
